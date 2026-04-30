@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业文档智能问答助手</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📄 企业文档智能问答</h1>
+            <p>上传 PDF / TXT / DOCX 文档，用自然语言提问，获取精准答案</p>
+        </header>
+
+        <div class="card upload-section">
+            <h2>📤 上传文档</h2>
+            <div class="file-upload-area" id="dropArea">
+                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.docx" hidden>
+                <div class="upload-icon">📂</div>
+                <p>拖拽文件到此处或 <button type="button" class="link-btn" onclick="document.getElementById('fileInput').click()">选择文件</button></p>
+                <p class="hint">支持 PDF、TXT、DOCX，可多选</p>
+            </div>
+            <div id="fileList" class="file-list"></div>
+            <div class="actions">
+                <button id="uploadBtn" class="btn btn-primary">🚀 上传并处理</button>
+                <button id="listDocsBtn" class="btn btn-secondary" onclick="listDocuments()">📋 查看已上传文档</button>
+                <button id="resetBtn" class="btn btn-danger" onclick="resetKB()">⚠️ 清空知识库</button>
+            </div>
+            <div id="uploadStatus" class="status-message"></div>
+            <div id="docList" class="doc-list"></div>
+        </div>
+
+        <div class="card ask-section">
+            <h2>❓ 提问</h2>
+            <div class="question-area">
+                <input type="text" id="questionInput" class="question-input" placeholder="例如：合同有效期到什么时候？">
+                <button id="askBtn" class="btn btn-primary">提问</button>
+            </div>
+            <div id="loading" class="loading" style="display:none;">⏳ 正在思考...</div>
+            <div id="answerArea" class="answer-area">
+                <div class="answer-text" id="answerText"></div>
+                <div class="sources" id="sourcesContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
