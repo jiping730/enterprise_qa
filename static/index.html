@@ -3,55 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>企业文档智能问答助手</title>
+    <title>企业多知识库问答</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📄 企业文档智能问答</h1>
-            <p>上传 PDF / TXT / DOCX 文档，用自然语言提问，获取精准答案</p>
-        </header>
-
-        <!-- 文档管理区（折叠） -->
-        <details class="card manage-section">
-            <summary>📁 文档管理（点击展开）</summary>
-            <div class="file-upload-area" id="dropArea">
-                <input type="file" id="fileInput" multiple accept=".pdf,.txt,.docx" hidden>
-                <div class="upload-icon">📂</div>
-                <p>拖拽文件到此处或 <button type="button" class="link-btn" onclick="document.getElementById('fileInput').click()">选择文件</button></p>
-                <p class="hint">支持 PDF, TXT, DOCX，可多选</p>
+    <div class="app-shell">
+        <!-- 侧边栏 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="logo">📚 知识库</h1>
+                <button id="logoutBtn" class="btn btn-outline btn-sm">退出</button>
             </div>
-            <div id="fileList" class="file-list"></div>
-            <div class="actions">
-                <button id="uploadBtn" class="btn btn-primary">🚀 上传并处理</button>
-                <button id="resetBtn" class="btn btn-danger" onclick="resetKB()">⚠️ 清空知识库</button>
-            </div>
-            <div id="uploadStatus" class="status-message"></div>
-            <div id="docList" class="doc-list"></div>
-        </details>
-
-        <!-- 文档选择器 -->
-        <div id="docSelector" class="doc-selector card" style="display:none;">
-            <h3>📌 限定检索文档</h3>
-            <div id="docCheckboxes"></div>
-            <small>不勾选则检索全部文档</small>
-        </div>
-
-        <!-- 聊天区域 -->
-        <div class="chat-container card">
-            <div class="chat-messages" id="chatBox">
-                <div class="message bot">
-                    <div class="content">👋 你好！我已准备好回答关于上传文档的问题。</div>
+            <div class="sidebar-body">
+                <h3 class="section-title">我的知识库</h3>
+                <ul id="kbList" class="kb-list"></ul>
+                <div class="kb-create">
+                    <input type="text" id="newKbName" placeholder="新知识库名称" class="input">
+                    <button id="createKbBtn" class="btn btn-primary btn-block">创建</button>
                 </div>
             </div>
-            <div class="chat-input-area">
-                <input type="text" id="questionInput" class="chat-input" placeholder="输入你的问题...">
-                <button id="askBtn" class="btn btn-primary">发送</button>
+        </aside>
+
+        <!-- 主工作区 -->
+        <main class="main-content" id="workspace">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-icon">📖</div>
+                <h2>选择一个知识库</h2>
+                <p>从左侧列表选择一个知识库，或创建一个新的知识库开始</p>
             </div>
-            <div id="loading" class="loading" style="display:none;">⏳ 正在思考...</div>
+        </main>
+    </div>
+
+    <!-- 知识库详情模板（隐藏） -->
+    <template id="kbDetailTemplate">
+        <div class="kb-detail">
+            <div class="kb-detail-header">
+                <h2 class="kb-title"></h2>
+                <div class="kb-actions">
+                    <button class="btn btn-outline btn-sm" onclick="document.getElementById('authModal').style.display='flex'">授权用户</button>
+                    <button class="btn btn-danger btn-sm btn-delete-kb">删除知识库</button>
+                </div>
+            </div>
+            <div class="kb-body">
+                <!-- 文档管理区 -->
+                <section class="doc-section">
+                    <h3>📄 文档管理</h3>
+                    <div class="upload-area" id="dropArea">
+                        <input type="file" id="docFileInput" multiple accept=".pdf,.txt,.docx" hidden>
+                        <div class="upload-zone" onclick="document.getElementById('docFileInput').click()">
+                            <span class="upload-icon">📂</span>
+                            <p>拖拽文件或点击此处上传</p>
+                            <small>支持 PDF, TXT, DOCX (可多选)</small>
+                        </div>
+                    </div>
+                    <button id="uploadDocBtn" class="btn btn-primary" style="margin-top:10px;">开始分析</button>
+                    <div id="fileListPreview" class="file-preview" style="margin-top:10px;"></div>
+                    <ul id="docList" class="doc-list"></ul>
+                </section>
+
+                <!-- 限定文档选择器 -->
+                <div id="docSelector" class="doc-selector" style="display:none;">
+                    <h4>📌 限定检索文档</h4>
+                    <div id="docCheckboxes"></div>
+                    <small style="color:#666;">不勾选则检索全部文档</small>
+                </div>
+
+                <!-- 问答区 -->
+                <section class="chat-section">
+                    <h3>💬 智能问答</h3>
+                    <div id="chatBox" class="chat-messages">
+                        <div class="chat-welcome">
+                            <p>🤖 我已准备好回答关于知识库文档的问题</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-row">
+                        <input type="text" id="questionInput" class="chat-input" placeholder="输入你的问题...">
+                        <button id="askBtn" class="btn btn-primary">发送</button>
+                    </div>
+                    <div id="askLoading" class="loading-msg" style="display:none;">正在思考...</div>
+                </section>
+            </div>
+        </div>
+    </template>
+
+    <!-- 授权弹窗（简易） -->
+    <div id="authModal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('authModal').style.display='none'">&times;</span>
+            <h3>授权用户访问知识库</h3>
+            <input type="text" id="authorizeUsername" placeholder="输入用户名" class="input">
+            <button onclick="authorizeUser()" class="btn btn-primary">授权</button>
         </div>
     </div>
-    <script src="/static/js/app.js"></script>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 </html>

@@ -3,21 +3,21 @@ from typing import List, Optional
 
 class AskRequest(BaseModel):
     question: str
-    documents: Optional[List[str]] = None   # 用户限定的文档名列表
+    documents: Optional[List[str]] = None   # 限定文档过滤
     session_id: Optional[str] = None        # 多轮对话标识
 
 class SourceInfo(BaseModel):
     content: str
     source: str
     page: Optional[int] = None
-    score: float = 0.0                      # 相似度分数，用于调试/显示
+    score: float = 0.0
 
 class AskResponse(BaseModel):
     answer: str
     sources: List[SourceInfo]
-    confidence: str = ""                    # 置信度说明文本
+    confidence: str = ""
 
 class UploadResponse(BaseModel):
     message: str
-    file_count: int
-    chunk_count: int
+    file_count: int = 0
+    chunk_count: int = 0

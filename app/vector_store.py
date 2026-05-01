@@ -1,18 +1,11 @@
 import os
-from typing import List, Optional
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
-
-import logging
-from typing import List, Optional
-from langchain_huggingface import HuggingFaceEmbeddings
+from typing import List, Optional, Tuple
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from app.config import EMBEDDING_MODEL, INDEX_DIR
-# ... 其余不变
 
-logger = logging.getLogger(__name__)
-
-# 全局嵌入模型（单例）
 _embeddings = None
 
 def get_embeddings():
@@ -25,62 +18,61 @@ def get_embeddings():
         )
     return _embeddings
 
-def load_vector_store() -> Optional[FAISS]:
-    """加载本地索引，不存在或损坏返回 None"""
-    if os.path.exists(INDEX_DIR) and os.path.exists(os.path.join(INDEX_DIR, "index.faiss")):
-        try:
-            return FAISS.load_local(INDEX_DIR, get_embeddings(), allow_dangerous_deserialization=True)
-        except Exception as e:
-            logger.warning(f"加载索引失败: {e}，将重建新索引")
-            return None
+def _get_kb_index_dir(kb_id: int) -> str:
+    return os.path.join(INDEX_DIR, f"kb_{kb_id}")
+
+def load_vector_store(kb_id: int) -> Optional[FAISS]:
+    index_dir = _get_kb_index_dir(kb_id)
+    if os.path.exists(index_dir) and os.path.exists(os.path.join(index_dir, "index.faiss")):
+        return FAISS.load_local(index_dir, get_embeddings(), allow_dangerous_deserialization=True)
     return None
 
-def save_vector_store(store: FAISS):
-    os.makedirs(INDEX_DIR, exist_ok=True)
-    store.save_local(INDEX_DIR)
+def save_vector_store(kb_id: int, store: FAISS):
+    index_dir = _get_kb_index_dir(kb_id)
+    os.makedirs(index_dir, exist_ok=True)
+    store.save_local(index_dir)
 
-def add_documents(docs: List[Document]):
-    """增量添加文档到向量库"""
-    store = load_vector_store()
+def add_documents_to_kb(kb_id: int, docs: List[Document]):
+    store = load_vector_store(kb_id)
     if store:
         store.add_documents(docs)
     else:
         store = FAISS.from_documents(docs, get_embeddings())
-    save_vector_store(store)
+    save_vector_store(kb_id, store)
 
-def reset_knowledge_base():
-    """清空知识库（删除索引目录）"""
-    import shutil
-    if os.path.exists(INDEX_DIR):
-        shutil.rmtree(INDEX_DIR)
-        logger.info("知识库已重置")
+def delete_document_from_kb(kb_id: int, filename: str):
+    """删除某文档在索引中的所有向量"""
+    store = load_vector_store(kb_id)
+    if not store:
+        return
+    ids_to_delete = []
+    for doc_id, doc in store.docstore._dict.items():
+        if doc.metadata.get("source") == filename:
+            ids_to_delete.append(doc_id)
+    if ids_to_delete:
+        store.delete(ids_to_delete)
+        save_vector_store(kb_id, store)
 
-def get_retriever():
-    """返回检索器，库为空返回 None"""
-    store = load_vector_store()
-    if store:
-        return store.as_retriever(search_kwargs={"k": 4})
-    return None
-
-def search_with_score(query: str, k: int = 10, filter_source: List[str] = None):
-    store = load_vector_store()
+def search_with_score_in_kb(
+    kb_id: int,
+    query: str,
+    k: int = 4,
+    filter_source: List[str] = None
+) -> List[Tuple[Document, float]]:
+    """
+    在指定知识库中检索，返回 (Document, score) 列表。
+    score 为 FAISS 返回的 L2 距离（越小越相关），可与之前逻辑保持一致。
+    """
+    store = load_vector_store(kb_id)
     if not store:
         return []
     if filter_source:
-        # 清理过滤列表
-        clean_filters = [f.strip() for f in filter_source if f.strip()]
-        # 多取一些候选
+        # 多取一些结果再过滤
         fetch_k = k * 3
         docs_with_scores = store.similarity_search_with_score(query, k=fetch_k)
         filtered = []
         for doc, score in docs_with_scores:
-            doc_source = doc.metadata.get("source", "").strip()
-            # 提取基础文件名（兼容绝对路径）
-            doc_base = os.path.basename(doc_source)
-            if doc_base in clean_filters or doc_source in clean_filters:
-                filtered.append((doc, score))
-            # 不区分大小写再次尝试
-            elif any(doc_base.lower() == f.lower() for f in clean_filters):
+            if doc.metadata.get("source") in filter_source:
                 filtered.append((doc, score))
             if len(filtered) >= k:
                 break

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 企业知识库</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="logo-icon">📚</div>
+            <h2>企业知识库平台</h2>
+            <p class="subtitle">登录以访问您的知识库</p>
+        </div>
+        <form id="loginForm" class="auth-form">
+            <div class="input-group">
+                <span class="input-icon">👤</span>
+                <input type="text" id="username" placeholder="用户名" required>
+            </div>
+            <div class="input-group">
+                <span class="input-icon">🔒</span>
+                <input type="password" id="password" placeholder="密码" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">登录</button>
+        </form>
+        <div class="auth-footer">
+            <span>还没有账号？</span>
+            <a href="#" id="showRegister" class="link">立即注册</a>
+        </div>
+        <div id="message" class="auth-message"></div>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/auth.js"></script>
+</body>
+</html>

@@ -7,11 +7,10 @@ from app.config import CHUNK_SIZE, CHUNK_OVERLAP
 
 ALLOWED_EXTENSIONS = {".pdf", ".txt", ".docx"}
 
-
 def load_and_split(file_path: str) -> List[Document]:
     ext = os.path.splitext(file_path)[1].lower()
     if ext not in ALLOWED_EXTENSIONS:
-        raise ValueError(f"不支持的文件类型: {ext}，仅支持 {', '.join(ALLOWED_EXTENSIONS)}")
+        raise ValueError(f"不支持的文件类型: {ext}")
 
     if ext == ".pdf":
         loader = PyPDFLoader(file_path)
@@ -21,14 +20,9 @@ def load_and_split(file_path: str) -> List[Document]:
         loader = Docx2txtLoader(file_path)
 
     documents = loader.load()
-
-    # 提取纯净文件名（不含路径）
     base_name = os.path.basename(file_path)
-
-    # 强制覆盖所有文档的 source 为文件名
     for doc in documents:
         doc.metadata["source"] = base_name
-        # 注意：如果有 page 信息保留，没有则忽略
 
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=CHUNK_SIZE,
@@ -36,6 +30,7 @@ def load_and_split(file_path: str) -> List[Document]:
         separators=["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]
     )
     split_docs = text_splitter.split_documents(documents)
-
-    # 分割后的文档会自动继承 metadata，确保 source 一致
+    # 为每个块生成唯一 ID（用于后续删除等）
+    for idx, doc in enumerate(split_docs):
+        doc.metadata["chunk_id"] = f"{base_name}_{idx}"
     return split_docs
