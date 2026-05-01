@@ -3,15 +3,19 @@ from typing import List, Optional
 
 class AskRequest(BaseModel):
     question: str
+    documents: Optional[List[str]] = None   # 用户限定的文档名列表
+    session_id: Optional[str] = None        # 多轮对话标识
 
 class SourceInfo(BaseModel):
-    content: str          # 文档片段原文（前200字）
-    source: str           # 文档文件名
-    page: Optional[int] = None   # 页码（PDF），从1开始
+    content: str
+    source: str
+    page: Optional[int] = None
+    score: float = 0.0                      # 相似度分数，用于调试/显示
 
 class AskResponse(BaseModel):
     answer: str
     sources: List[SourceInfo]
+    confidence: str = ""                    # 置信度说明文本
 
 class UploadResponse(BaseModel):
     message: str

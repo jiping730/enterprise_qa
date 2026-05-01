@@ -1,12 +1,16 @@
-from typing import List, Tuple
 import logging
-from langchain.schema import Document
+from typing import List, Tuple, Dict
+from langchain.schema import Document, HumanMessage, AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from app.config import ZHIPU_API_KEY, LLM_MODEL, LLM_API_BASE, TOP_K
-from app.vector_store import get_retriever
+from app.vector_store import search_with_score
 from app.models import SourceInfo
 
 logger = logging.getLogger(__name__)
+
+# 内存中的多轮对话历史
+session_histories: Dict[str, List] = {}
+
 
 def _build_llm():
     return ChatOpenAI(
@@ -16,51 +20,108 @@ def _build_llm():
         temperature=0.1,
     )
 
-def answer_question(question: str) -> Tuple[str, List[SourceInfo]]:
-    """问答主逻辑：检索 -> 生成 -> 提取来源"""
-    retriever = get_retriever()
-    if not retriever:
-        return "知识库中没有文档，请先上传文件。", []
 
-    # 1. 检索
-    docs: List[Document] = retriever.invoke(question)
-    if not docs:
-        return "未找到与问题相关的文档片段。", []
+def _get_confidence(docs_with_score: List[Tuple[Document, float]]) -> str:
+    """
+    根据检索结果中的最高相似度生成置信度说明。
+    FAISS 返回的 score 是 L2 距离（越小越相关），我们转换为相似度以便于理解。
+    """
+    if not docs_with_score:
+        return "知识库中没有匹配的文档片段。"
 
-    # 2. 构建提示词，附上来源标记
+    # 距离越小相似度越高，转换为 0~1 的相似度
+    min_distance = docs_with_score[0][1]
+    # 使用 1/(1+distance) 将距离映射到相似度
+    similarity = 1.0 / (1.0 + min_distance)
+
+    if similarity > 0.75:
+        return "✅ 在文档中找到了高度相关内容，答案可信。"
+    elif similarity > 0.5:
+        return "⚠️ 文档中有部分相关内容，答案可能不够完整。"
+    elif similarity > 0.3:
+        return "❓ 文档中未找到直接相关内容，以下回答基于模型推断，请谨慎参考。"
+    else:
+        return "❌ 文档中几乎没有相关信息，回答可能不可靠。"
+
+
+def answer_question(
+        question: str,
+        filter_docs: List[str] = None,
+        session_id: str = None
+) -> Tuple[str, List[SourceInfo], str]:
+    """
+    核心问答函数：
+    - filter_docs: 限定检索的文档名列表，None 或空列表表示不过滤
+    - session_id: 多轮对话标识
+    返回：(答案, 来源列表, 置信度文本)
+    """
+    # 1. 检索，注意空列表视为 None
+    raw_docs_with_score = search_with_score(
+        question,
+        k=TOP_K,
+        filter_source=filter_docs if filter_docs else None
+    )
+
+    if not raw_docs_with_score:
+        from app.vector_store import load_vector_store
+        store = load_vector_store()
+        if store is None or store.index.ntotal == 0:
+            confidence = "知识库中没有文档，请先上传文件。"
+        else:
+            if filter_docs:
+                confidence = f"在您选择的文档（{', '.join(filter_docs)}）中未找到相关内容，请尝试扩大检索范围。"
+            else:
+                confidence = "知识库中未找到匹配的文档片段。"
+        return "请先上传相关文档，或尝试更换问题。", [], confidence
+
+    # 2. 生成置信度
+    confidence = _get_confidence(raw_docs_with_score)
+    docs = [doc for doc, _ in raw_docs_with_score]
+
+    # 3. 构建消息列表（含历史）
+    messages = [
+        SystemMessage(content="你是一个严谨的企业文档问答助手。请仅根据提供的参考资料回答，不要编造。")
+    ]
+    if session_id and session_id in session_histories:
+        messages.extend(session_histories[session_id])
+
+    # 4. 格式化参考内容
     context_parts = []
     for idx, doc in enumerate(docs):
         source = doc.metadata.get("source", "未知文档")
         page = doc.metadata.get("page")
-        page_str = f", 第{page+1}页" if page is not None else ""
-        context_parts.append(f"[参考{idx+1} 来源: {source}{page_str}]\n{doc.page_content}")
+        page_str = f"第{page + 1}页" if page is not None else ""
+        context_parts.append(f"[参考{idx + 1} 来源: {source} {page_str}]\n{doc.page_content}")
     context = "\n\n".join(context_parts)
 
-    prompt = f"""你是一个严谨的企业文档问答助手。请仅根据以下参考资料回答用户问题，禁止编造。
-如果资料中没有答案，请明确回答“根据现有资料无法回答”。
+    messages.append(HumanMessage(content=f"参考资料：\n{context}\n\n用户问题：{question}"))
 
-参考资料：
-{context}
-
-用户问题：{question}
-回答："""
-
-    # 3. 调用大模型
+    # 5. 调用大模型
     llm = _build_llm()
     try:
-        response = llm.invoke(prompt)
+        response = llm.invoke(messages)
         answer = response.content.strip()
     except Exception as e:
         logger.error(f"LLM调用失败: {e}")
-        answer = "生成答案时出错，请检查 API Key 或网络连接。"
+        answer = "生成答案时出错，请检查 API Key 或网络。"
 
-    # 4. 构建来源信息
+    # 6. 更新会话历史
+    if session_id:
+        if session_id not in session_histories:
+            session_histories[session_id] = []
+        session_histories[session_id].append(HumanMessage(content=question))
+        session_histories[session_id].append(AIMessage(content=answer))
+        # 保留最近 20 轮对话（40 条消息）
+        session_histories[session_id] = session_histories[session_id][-40:]
+
+    # 7. 构建来源信息
     sources = []
-    for doc in docs:
+    for doc, score in raw_docs_with_score:
         sources.append(SourceInfo(
-            content=doc.page_content[:200],  # 截取前200字符
+            content=doc.page_content[:200],
             source=doc.metadata.get("source", "未知"),
-            page=doc.metadata.get("page") + 1 if doc.metadata.get("page") is not None else None
+            page=doc.metadata.get("page") + 1 if doc.metadata.get("page") is not None else None,
+            score=round(score, 4)
         ))
 
-    return answer, sources
+    return answer, sources, confidence

@@ -1,27 +1,24 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# 从环境变量读取智谱 API Key（必须配置）
+# 项目根目录（app/config.py 的上两级）
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 ZHIPU_API_KEY = os.getenv("ZHIPU_API_KEY")
 if not ZHIPU_API_KEY:
     raise ValueError("请在 .env 文件中设置 ZHIPU_API_KEY")
 
-# 嵌入模型（本地运行，首次自动下载）
-EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"
-
-# 大语言模型
+EMBEDDING_MODEL = "BAAI/bge-small-zh-v1.5"   # 或你实际使用的模型
 LLM_MODEL = "glm-4-flash"
 LLM_API_BASE = "https://open.bigmodel.cn/api/paas/v4/"
 
-# 文本分割参数
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 50
-
-# 检索返回片段数
 TOP_K = 4
 
-# 存储路径
-DATA_DIR = "data"
-INDEX_DIR = "faiss_index"
+# 改为绝对路径
+DATA_DIR = str(BASE_DIR / "data")
+INDEX_DIR = str(BASE_DIR / "faiss_index")

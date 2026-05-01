@@ -12,22 +12,28 @@ from app.vector_store import add_documents, reset_knowledge_base
 from app.qa_chain import answer_question
 from app.config import DATA_DIR
 
-# 项目根目录（app/main.py 的上两级）
+from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
+static_dir = BASE_DIR / "static"
+# 项目根目录 = app目录的父目录
+BASE_DIR = Path(__file__).resolve().parent.parent
+static_dir = BASE_DIR / "static"
+
+# 启动时检查 static 目录是否存在
+if not static_dir.exists():
+    raise RuntimeError(f"静态文件目录不存在: {static_dir}\n请确认目录结构正确。")
 
 app = FastAPI(title="企业文档智能问答助手", version="2.0")
 
-# 数据目录（相对根目录）
+# 确保数据目录存在
 Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
-# 挂载静态文件（使用绝对路径，彻底解决找不到目录的问题）
-static_dir = BASE_DIR / "static"
-if not static_dir.exists():
-    raise RuntimeError(f"静态文件目录不存在: {static_dir}")
+# 挂载静态文件（必须在定义路由前或后均可，推荐在前）
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 @app.get("/", response_class=FileResponse)
 async def index():
+    """返回前端主页"""
     return FileResponse(str(static_dir / "index.html"))
 
 @app.post("/upload", response_model=UploadResponse)
@@ -82,8 +88,13 @@ async def reset():
 async def ask(req: AskRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="问题不能为空")
-    answer, sources = answer_question(req.question)
-    return AskResponse(answer=answer, sources=sources)
+    filter_docs = req.documents if req.documents else None
+    answer, sources, confidence = answer_question(
+        question=req.question,
+        filter_docs=filter_docs,
+        session_id=req.session_id
+    )
+    return AskResponse(answer=answer, sources=sources, confidence=confidence)
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

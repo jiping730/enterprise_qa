@@ -1,4 +1,5 @@
 import os
+from typing import List, Optional
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 
 import logging
@@ -60,3 +61,29 @@ def get_retriever():
     if store:
         return store.as_retriever(search_kwargs={"k": 4})
     return None
+
+def search_with_score(query: str, k: int = 10, filter_source: List[str] = None):
+    store = load_vector_store()
+    if not store:
+        return []
+    if filter_source:
+        # 清理过滤列表
+        clean_filters = [f.strip() for f in filter_source if f.strip()]
+        # 多取一些候选
+        fetch_k = k * 3
+        docs_with_scores = store.similarity_search_with_score(query, k=fetch_k)
+        filtered = []
+        for doc, score in docs_with_scores:
+            doc_source = doc.metadata.get("source", "").strip()
+            # 提取基础文件名（兼容绝对路径）
+            doc_base = os.path.basename(doc_source)
+            if doc_base in clean_filters or doc_source in clean_filters:
+                filtered.append((doc, score))
+            # 不区分大小写再次尝试
+            elif any(doc_base.lower() == f.lower() for f in clean_filters):
+                filtered.append((doc, score))
+            if len(filtered) >= k:
+                break
+        return filtered
+    else:
+        return store.similarity_search_with_score(query, k=k)
