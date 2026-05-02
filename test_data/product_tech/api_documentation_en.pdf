@@ -1,0 +1,149 @@
+%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+/Resources <<
+/Font <<
+/F1 5 0 R
+>>
+>>
+>>
+endobj
+
+4 0 obj
+<<
+/Length 2500
+>>
+stream
+BT
+/F1 16 Tf
+50 750 Td
+(API Documentation - Product Technical Library) Tj
+/F1 12 Tf
+0 -30 Td
+(1. Overview) Tj
+0 -20 Td
+(This document provides comprehensive API documentation for the enterprise platform.) Tj
+0 -15 Td
+(Base URL: https://api.example.com/v1) Tj
+0 -15 Td
+(Authentication: Bearer token required in Authorization header) Tj
+0 -30 Td
+(2. User Management API) Tj
+0 -20 Td
+(2.1 GET /users) Tj
+0 -15 Td
+(Description: Retrieve a list of all users) Tj
+0 -15 Td
+(Parameters:) Tj
+0 -15 Td
+(- page (optional): Page number, default 1) Tj
+0 -15 Td
+(- limit (optional): Items per page, default 20, max 100) Tj
+0 -15 Td
+(- role (optional): Filter by user role) Tj
+0 -15 Td
+(Response: 200 OK with user list array) Tj
+0 -30 Td
+(2.2 POST /users) Tj
+0 -15 Td
+(Description: Create a new user) Tj
+0 -15 Td
+(Request Body:) Tj
+0 -15 Td
+(- username (required): Unique username, 3-50 characters) Tj
+0 -15 Td
+(- email (required): Valid email address) Tj
+0 -15 Td
+(- role (required): One of [admin, manager, user]) Tj
+0 -15 Td
+(- department (optional): Department ID) Tj
+0 -15 Td
+(Response: 201 Created with new user object) Tj
+0 -30 Td
+(3. Authentication API) Tj
+0 -20 Td
+(3.1 POST /auth/login) Tj
+0 -15 Td
+(Description: Authenticate user and return JWT token) Tj
+0 -15 Td
+(Request Body:) Tj
+0 -15 Td
+(- username (required): Registered username) Tj
+0 -15 Td
+(- password (required): User password) Tj
+0 -15 Td
+(Response: 200 OK with access_token and token_type) Tj
+0 -30 Td
+(4. Error Handling) Tj
+0 -20 Td
+(All errors follow standard HTTP status codes:) Tj
+0 -15 Td
+(- 400 Bad Request: Invalid request parameters) Tj
+0 -15 Td
+(- 401 Unauthorized: Missing or invalid authentication) Tj
+0 -15 Td
+(- 403 Forbidden: Insufficient permissions) Tj
+0 -15 Td
+(- 404 Not Found: Resource does not exist) Tj
+0 -15 Td
+(- 500 Internal Server Error: Server-side error) Tj
+0 -30 Td
+(5. Rate Limiting) Tj
+0 -20 Td
+(API requests are limited to 1000 per hour per API key.) Tj
+0 -15 Td
+(Rate limit headers are included in all responses:) Tj
+0 -15 Td
+(- X-RateLimit-Limit: Maximum requests allowed) Tj
+0 -15 Td
+(- X-RateLimit-Remaining: Remaining requests in current window) Tj
+0 -15 Td
+(- X-RateLimit-Reset: Timestamp when limit resets) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000314 00000 n 
+0000002866 00000 n 
+
+trailer
+<<
+/Size 6
+/Root 1 0 R
+>>
+startxref
+2955
+%%EOF

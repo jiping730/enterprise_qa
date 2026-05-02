@@ -1,7 +1,7 @@
 import os
 os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
 from typing import List, Optional, Tuple
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings, logger
 from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
 from app.config import EMBEDDING_MODEL, INDEX_DIR
@@ -33,11 +33,29 @@ def save_vector_store(kb_id: int, store: FAISS):
     store.save_local(index_dir)
 
 def add_documents_to_kb(kb_id: int, docs: List[Document]):
+    # 过滤空内容的文档，避免生成无效向量
+    valid_docs = [doc for doc in docs if doc.page_content.strip()]
+    if not valid_docs:
+        return
+
+    try:
+        embeddings = get_embeddings()
+        # 额外测试：确保嵌入模型工作正常
+        _ = embeddings.embed_query("test")
+    except Exception as e:
+        raise RuntimeError(f"嵌入模型加载失败，请检查网络或模型路径。错误: {e}")
+
     store = load_vector_store(kb_id)
     if store:
-        store.add_documents(docs)
+        try:
+            store.add_documents(valid_docs)
+        except Exception as e:
+            # 如果添加失败，可能是索引损坏，重建索引
+            logger.warning(f"增量添加失败: {e}，将重建索引")
+            store = FAISS.from_documents(valid_docs, embeddings)
     else:
-        store = FAISS.from_documents(docs, get_embeddings())
+        store = FAISS.from_documents(valid_docs, embeddings)
+
     save_vector_store(kb_id, store)
 
 def delete_document_from_kb(kb_id: int, filename: str):

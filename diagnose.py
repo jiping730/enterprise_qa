@@ -1,16 +1,12 @@
-from app.config import INDEX_DIR
-from app.vector_store import load_vector_store
+from app.evaluation import _is_exact_match, _is_partial_match
 
-print(f"INDEX_DIR（绝对路径）: {INDEX_DIR}")
-store = load_vector_store()
-if store:
-    print(f"✅ 索引加载成功，向量数: {store.index.ntotal}")
-    # 显示文档源
-    sources = {}
-    for doc_id, doc in store.docstore._dict.items():
-        src = doc.metadata.get("source", "未知")
-        sources[src] = sources.get(src, 0) + 1
-    for src, cnt in sources.items():
-        print(f"  {src}  ({cnt} 片段)")
-else:
-    print("❌ 索引仍不存在，请检查上传日志。")
+# 考勤
+print("考勤完全匹配:", _is_exact_match(
+    "公司实行标准工时制，每日工作时间不超过8小时，每周不超过40小时。同时推行弹性工作制。",
+    "每日工作时间不超过8小时，每周不超过40小时，弹性工作制可选。"
+))
+# 信息安全
+print("信息安全完全匹配:", _is_exact_match(
+    "严禁泄露客户资料，定期更换密码，使用VPN访问内网资源",
+    "不得泄露客户数据，定期更换密码，使用VPN访问内网资源"
+))

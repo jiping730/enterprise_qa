@@ -34,3 +34,26 @@ def load_and_split(file_path: str) -> List[Document]:
     for idx, doc in enumerate(split_docs):
         doc.metadata["chunk_id"] = f"{base_name}_{idx}"
     return split_docs
+
+
+def split_text(text: str, source_name: str) -> List[Document]:
+    """
+    将纯文本内容按已有分块策略分割为多个 Document
+    source_name 会写入每个块的 metadata 中
+    """
+    from langchain.schema import Document as LangDocument
+
+    # 手动创建一个 Document 对象，包含全部文本
+    full_doc = LangDocument(page_content=text, metadata={"source": source_name})
+
+    # 使用与文件加载相同的分割器
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        separators=["\n\n", "\n", "。", "！", "？", "；", "，", " ", ""]
+    )
+    split_docs = text_splitter.split_documents([full_doc])
+    # 为每个块补充 chunk_id
+    for idx, doc in enumerate(split_docs):
+        doc.metadata["chunk_id"] = f"{source_name}_{idx}"
+    return split_docs

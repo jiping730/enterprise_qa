@@ -1,0 +1,102 @@
+[
+  {
+    "question": "API的基础URL是什么？",
+    "expected": "https://api.example.com/v1"
+  },
+  {
+    "question": "API认证需要什么？",
+    "expected": "Bearer token"
+  },
+  {
+    "question": "GET /users接口的默认分页大小是多少？",
+    "expected": "20"
+  },
+  {
+    "question": "GET /users接口的最大分页大小是多少？",
+    "expected": "100"
+  },
+  {
+    "question": "POST /users接口需要什么必填字段？",
+    "expected": "username, email, role"
+  },
+  {
+    "question": "POST /auth/login接口返回什么？",
+    "expected": "access_token和token_type"
+  },
+  {
+    "question": "API限流是多少请求每小时？",
+    "expected": "1000"
+  },
+  {
+    "question": "部署需要哪些软件？",
+    "expected": "Docker, Docker Compose, Nginx, PostgreSQL, Redis, Node.js, Python"
+  },
+  {
+    "question": "数据库备份时间是什么时候？",
+    "expected": "凌晨2:00"
+  },
+  {
+    "question": "数据库备份保留多少天？",
+    "expected": "7天"
+  },
+  {
+    "question": "日志保留多少天？",
+    "expected": "30天"
+  },
+  {
+    "question": "单个日志文件最大多少MB？",
+    "expected": "100MB"
+  },
+  {
+    "question": "系统最低内存要求是多少？",
+    "expected": "8GB"
+  },
+  {
+    "question": "推荐内存是多少？",
+    "expected": "16GB"
+  },
+  {
+    "question": "后端使用什么编程语言？",
+    "expected": "Python"
+  },
+  {
+    "question": "前端使用什么框架？",
+    "expected": "React"
+  },
+  {
+    "question": "What is the base URL for API?",
+    "expected": "https://api.example.com/v1"
+  },
+  {
+    "question": "What authentication is required for API endpoints?",
+    "expected": "Bearer token"
+  },
+  {
+    "question": "What is the default page size for GET /users?",
+    "expected": "20"
+  },
+  {
+    "question": "What is the maximum page size for GET /users?",
+    "expected": "100"
+  },
+  {
+    "question": "What are the required fields for POST /users?",
+    "expected": "username, email, role"
+  },
+  {
+    "question": "What does POST /auth/login return?",
+    "expected": "access_token and token_type"
+  },
+  {
+    "question": "What is the API rate limit per hour?",
+    "expected": "1000 requests"
+  },
+  {
+    "question": "What is the minimum code coverage requirement?",
+    "expected": "80%"
+  },
+  {
+    "question": "What is the target response time for 95th percentile?",
+    "expected": "200ms"
+  }
+]

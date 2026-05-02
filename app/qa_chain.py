@@ -42,7 +42,7 @@ def answer_question(
         filter_docs: List[str] = None,
         session_id: str = None
 ) -> Tuple[str, List[SourceInfo], str]:
-    # 1. 检索（在指定知识库内）
+    # 1. 检索
     raw_docs_with_score = search_with_score_in_kb(
         kb_id,
         question,
@@ -51,7 +51,6 @@ def answer_question(
     )
 
     if not raw_docs_with_score:
-        # 检查知识库是否为空
         from app.vector_store import load_vector_store
         store = load_vector_store(kb_id)
         if store is None or store.index.ntotal == 0:
@@ -63,11 +62,31 @@ def answer_question(
                 confidence = "知识库中未找到匹配的文档片段。"
         return "请先上传相关文档，或尝试更换问题。", [], confidence
 
-    # 2. 置信度
-    confidence = _get_confidence(raw_docs_with_score)
-    docs = [doc for doc, _ in raw_docs_with_score]
+    # 2. 将距离转换为相似度并排序
+    scored_docs = []
+    for doc, distance in raw_docs_with_score:
+        similarity = 1.0 / (1.0 + float(distance))
+        scored_docs.append((doc, similarity))
 
-    # 3. 构建消息（含历史）
+    scored_docs.sort(key=lambda x: x[1], reverse=True)   # 按相似度降序
+
+    # 3. 生成置信度（使用原始最高分）
+    confidence = _get_confidence(raw_docs_with_score)
+
+    # 4. 提取排序后的文档列表
+    docs = [item[0] for item in scored_docs]
+
+    # 5. 构建来源信息（只保留这一处，后面的重复代码要删掉）
+    sources = []
+    for doc, sim in scored_docs:
+        sources.append(SourceInfo(
+            content=doc.page_content[:200],
+            source=doc.metadata.get("source", "未知"),
+            page=doc.metadata.get("page") + 1 if doc.metadata.get("page") is not None else None,
+            score=round(sim, 4)
+        ))
+
+    # 6. 构建 LLM 消息
     messages = [
         SystemMessage(content="你是一个严谨的企业文档问答助手。请仅根据提供的参考资料回答，不要编造。")
     ]
@@ -84,7 +103,7 @@ def answer_question(
 
     messages.append(HumanMessage(content=f"参考资料：\n{context}\n\n用户问题：{question}"))
 
-    # 4. 调用 LLM
+    # 7. 调用 LLM
     llm = _build_llm()
     try:
         response = llm.invoke(messages)
@@ -93,7 +112,7 @@ def answer_question(
         logger.error(f"LLM调用失败: {e}")
         answer = "生成答案时出错，请检查 API Key 或网络。"
 
-    # 5. 记录查询日志到 MySQL
+    # 8. 记录日志
     db = next(get_db())
     log = QueryLog(
         user_id=user.id,
@@ -104,7 +123,7 @@ def answer_question(
     db.add(log)
     db.commit()
 
-    # 6. 更新会话历史
+    # 9. 更新会话历史
     if session_id:
         if session_id not in session_histories:
             session_histories[session_id] = []
@@ -112,14 +131,5 @@ def answer_question(
         session_histories[session_id].append(AIMessage(content=answer))
         session_histories[session_id] = session_histories[session_id][-40:]
 
-    # 7. 构建来源信息
-    sources = []
-    for doc, score in raw_docs_with_score:
-        sources.append(SourceInfo(
-            content=doc.page_content[:200],
-            source=doc.metadata.get("source", "未知"),
-            page=doc.metadata.get("page") + 1 if doc.metadata.get("page") is not None else None,
-            score=round(score, 4)
-        ))
-
+    # 10. 返回结果（注意这里直接使用前面构建好的 sources 和 confidence）
     return answer, sources, confidence

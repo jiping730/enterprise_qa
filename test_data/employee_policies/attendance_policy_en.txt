@@ -1,0 +1,41 @@
+Employee Attendance Policy
+
+1. Working Hours
+Standard working hours are Monday to Friday, 9:00 AM to 6:00 PM, with a lunch break from 12:00 PM to 1:00 PM.
+Employees are expected to arrive on time and notify their supervisor if they will be late.
+
+2. Leave Policy
+2.1 Annual Leave
+Employees who have worked for one year are entitled to 5 days of paid annual leave.
+For each additional year of service, 1 extra day is added, up to a maximum of 15 days.
+Annual leave must be applied for at least 3 days in advance.
+
+2.2 Sick Leave
+Sick leave requires a medical certificate from a hospital.
+The maximum sick leave per year is 30 days.
+During sick leave, employees receive 80% of their basic salary.
+
+2.3 Personal Leave
+Personal leave must be requested 3 days in advance.
+The maximum personal leave per year is 10 days.
+Personal leave is unpaid.
+
+2.4 Maternity and Paternity Leave
+Female employees are entitled to 98 days of maternity leave.
+Male employees are entitled to 15 days of paternity leave.
+
+3. Overtime Policy
+Overtime work must be approved by the department manager in advance.
+Overtime on weekdays is compensated at 1.5 times the hourly rate.
+Overtime on weekends is compensated at 2 times the hourly rate.
+Overtime on public holidays is compensated at 3 times the hourly rate.
+
+4. Remote Work
+Employees may apply for remote work up to 2 days per week.
+Remote work requests must be submitted through the HR system.
+Employees working remotely must be available during core hours (10:00 AM - 4:00 PM).
+
+5. Attendance Records
+Attendance is tracked through the company's biometric system.
+Employees must clock in and out daily.
+Missing clock-in records must be reported to HR within 24 hours.

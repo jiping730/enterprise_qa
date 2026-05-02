@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 from app.config import DATA_DIR, INDEX_DIR
 from app.database import init_db, get_db
 from app.models_db import User, KnowledgeBase, Document as DBDocument, QueryLog
-from app.models_api import AskRequest, AskResponse, UploadResponse
+import json
+from app.models_api import AskRequest, AskResponse, UploadResponse, EvaluationReport
 from app.auth import (
     hash_password,
     verify_password,
@@ -20,9 +21,10 @@ from app.auth import (
     get_current_user,
     get_kb_permission,
 )
-from app.document_loader import load_and_split, ALLOWED_EXTENSIONS
+from app.document_loader import load_and_split, ALLOWED_EXTENSIONS, split_text
 from app.vector_store import add_documents_to_kb, delete_document_from_kb
 from app.qa_chain import answer_question
+from app.evaluation import evaluate_kb
 
 # ---------- 项目根目录 & 静态文件 ----------
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -176,6 +178,43 @@ def authorize_user(
     db.commit()
     return {"message": f"用户 {username} 已获得访问权限"}
 
+# 获取已授权用户列表
+@app.get("/kbs/{kb_id}/authorized-users")
+def list_authorized_users(
+    kb_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    kb = db.query(KnowledgeBase).get(kb_id)
+    if not kb or kb.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅知识库所有者可查看授权用户")
+    # 获取所有已授权用户，排除所有者自己
+    authorized = [u for u in kb.authorized_users if u.id != kb.owner_id]
+    return [{"id": u.id, "username": u.username} for u in authorized]
+
+# 撤销用户权限
+@app.delete("/kbs/{kb_id}/authorize/{user_id}")
+def revoke_authorization(
+    kb_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    kb = db.query(KnowledgeBase).get(kb_id)
+    if not kb or kb.owner_id != user.id:
+        raise HTTPException(status_code=403, detail="仅知识库所有者可操作")
+    # 禁止撤销所有者自己
+    if user_id == kb.owner_id:
+        raise HTTPException(status_code=400, detail="无法撤销所有者本人的权限")
+    target_user = db.query(User).get(user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    if target_user not in kb.authorized_users:
+        raise HTTPException(status_code=400, detail="该用户未授权")
+    kb.authorized_users.remove(target_user)
+    db.commit()
+    return {"message": f"已撤销用户 {target_user.username} 的权限"}
+
 # ---------- 文档管理 ----------
 @app.get("/kbs/{kb_id}/documents")
 def list_docs(
@@ -228,6 +267,48 @@ async def upload_docs(
         chunk_count=total_chunks,
     )
 
+@app.post("/kbs/{kb_id}/import-url")
+async def import_url(
+    kb_id: int,
+    url: str = Form(...),          # 注意：使用 Form 接收
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # 权限检查
+    kb = get_kb_permission(kb_id, db, user)
+
+    # 下载网页
+    try:
+        import trafilatura
+        downloaded = trafilatura.fetch_url(url)
+        if downloaded is None:
+            raise HTTPException(status_code=400, detail="无法访问该URL")
+        text = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
+        if not text or len(text.strip()) < 10:
+            raise HTTPException(status_code=400, detail="未能从网页中提取到有效文本")
+    except ImportError:
+        raise HTTPException(status_code=500, detail="服务器缺少 trafilatura 依赖")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"网页抓取失败: {str(e)}")
+
+    # 生成一个虚拟文件名作为 source（用 URL 的域名+路径摘要）
+    source_name = url.replace("https://", "").replace("http://", "").replace("/", "_")[:80] + ".web"
+
+    # 分割文本并存入向量库
+    docs = split_text(text, source_name)
+    add_documents_to_kb(kb_id, docs)
+
+    # 在数据库中记录一个文档条目（可选，但建议）
+    db_doc = DBDocument(filename=source_name, kb_id=kb_id)
+    db.add(db_doc)
+    db.commit()
+
+    return UploadResponse(
+        message=f"成功导入网页，生成 {len(docs)} 个片段",
+        file_count=1,
+        chunk_count=len(docs),
+    )
+
 @app.delete("/kbs/{kb_id}/documents/{doc_id}")
 def delete_doc(
     kb_id: int,
@@ -266,6 +347,29 @@ def ask_question(
         session_id=req.session_id,
     )
     return AskResponse(answer=answer, sources=sources, confidence=confidence)
+
+
+# ---------- 评测 ----------
+@app.post("/kbs/{kb_id}/evaluate", response_model=EvaluationReport)
+async def evaluate(
+    kb_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    kb = get_kb_permission(kb_id, db, user)
+    # 解析上传的 JSON 文件
+    content = await file.read()
+    try:
+        test_data = json.loads(content)
+        if not isinstance(test_data, list):
+            raise ValueError("JSON 应为列表")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"无效的评测文件: {str(e)}")
+
+    report = evaluate_kb(kb_id, user, test_data)
+    return report
+
 
 if __name__ == "__main__":
     import uvicorn

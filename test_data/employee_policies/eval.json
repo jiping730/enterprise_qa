@@ -1,0 +1,102 @@
+[
+  {
+    "question": "新员工入职需要完成哪些步骤？",
+    "expected": "提交身份证、学历证明复印件，签订劳动合同及保密协议，参加入职培训，领取办公设备及工牌，部门负责人介绍岗位职责"
+  },
+  {
+    "question": "员工离职需要提前多少天提交申请？",
+    "expected": "30天"
+  },
+  {
+    "question": "标准工作时间是什么？",
+    "expected": "周一至周五，上午9:00至下午6:00，午休时间为12:00至13:00"
+  },
+  {
+    "question": "工作满一年的员工有多少天带薪年假？",
+    "expected": "5天"
+  },
+  {
+    "question": "年假上限是多少天？",
+    "expected": "15天"
+  },
+  {
+    "question": "病假每年最多多少天？",
+    "expected": "30天"
+  },
+  {
+    "question": "事假需要提前几天申请？",
+    "expected": "3天"
+  },
+  {
+    "question": "薪资由哪几部分组成？",
+    "expected": "基本工资、绩效奖金、岗位津贴"
+  },
+  {
+    "question": "工资每月几号发放？",
+    "expected": "15日"
+  },
+  {
+    "question": "公司缴纳哪些社会保险？",
+    "expected": "养老保险、医疗保险、失业保险、工伤保险、生育保险、住房公积金"
+  },
+  {
+    "question": "每年培训时长不少于多少小时？",
+    "expected": "40小时"
+  },
+  {
+    "question": "交通补贴每月多少元？",
+    "expected": "500元"
+  },
+  {
+    "question": "通讯补贴每月多少元？",
+    "expected": "200元"
+  },
+  {
+    "question": "餐费补贴每月多少元？",
+    "expected": "800元"
+  },
+  {
+    "question": "春节礼金是多少？",
+    "expected": "1000元"
+  },
+  {
+    "question": "生日礼金是多少？",
+    "expected": "300元"
+  },
+  {
+    "question": "What are the standard working hours?",
+    "expected": "Monday to Friday, 9:00 AM to 6:00 PM, with a lunch break from 12:00 PM to 1:00 PM"
+  },
+  {
+    "question": "How many days of paid annual leave for employees who worked one year?",
+    "expected": "5 days"
+  },
+  {
+    "question": "What is the maximum annual leave?",
+    "expected": "15 days"
+  },
+  {
+    "question": "How many days of sick leave per year?",
+    "expected": "30 days"
+  },
+  {
+    "question": "How many days in advance must personal leave be requested?",
+    "expected": "3 days"
+  },
+  {
+    "question": "What is the overtime compensation rate on weekdays?",
+    "expected": "1.5 times"
+  },
+  {
+    "question": "What is the overtime compensation rate on weekends?",
+    "expected": "2 times"
+  },
+  {
+    "question": "How many days of remote work per week?",
+    "expected": "2 days"
+  },
+  {
+    "question": "What are the core hours for remote work?",
+    "expected": "10:00 AM - 4:00 PM"
+  }
+]

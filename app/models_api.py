@@ -21,3 +21,32 @@ class UploadResponse(BaseModel):
     message: str
     file_count: int = 0
     chunk_count: int = 0
+
+
+class EvaluationItem(BaseModel):
+    question: str
+    expected: str
+
+
+class EvaluationDetail(BaseModel):
+    question: str
+    expected: str
+    answer: str
+    match_type: str
+
+
+class EvaluationSummary(BaseModel):
+    total: int
+    exact_match: int
+    exact_match_rate: float
+    partial_match: int
+    partial_match_rate: float
+    rejected: int
+    rejected_rate: float
+    error: int
+    error_rate: float
+
+
+class EvaluationReport(BaseModel):
+    summary: EvaluationSummary
+    details: List[EvaluationDetail]
